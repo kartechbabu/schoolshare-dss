@@ -1,0 +1,30 @@
+# Core dependencies
+streamlit>=1.28.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization
+plotly>=5.17.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+folium>=0.14.0
+streamlit-folium>=0.13.0
+branca>=0.6.0  # For colormaps
+
+# Data handling
+pyreadr>=0.4.7  # For reading RDS files
+pyarrow>=12.0.0  # For parquet files
+openpyxl>=3.1.0  # For Excel export
+
+# Geospatial
+geopandas>=0.13.0
+shapely>=2.0.0
+fiona>=1.9.0  # For reading geopackage files
+
+# Utilities
+python-dotenv>=1.0.0  # For environment variables
+
+# Development dependencies (optional)
+# pytest>=7.4.0
+# black>=23.3.0
+# flake8>=6.0.0

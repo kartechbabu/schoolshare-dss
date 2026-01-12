@@ -1,0 +1,26 @@
+# Docker Compose for DSS App v2
+# Use for local testing before deploying to Digital Ocean
+
+version: '3.8'
+
+services:
+  dss-app:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      # Mount local data directory
+      - ./data:/app/data:ro
+      # Mount census data (adjust path for your system)
+      # - /path/to/census_data:/app/data/census:ro
+    environment:
+      - DSS_BASE_PATH=/app
+      - DSS_DATA_PATH=/app/data
+      - DSS_CENSUS_PATH=/app/data/census
+      - DSS_PROCESSED_PATH=/app/data/processed
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
