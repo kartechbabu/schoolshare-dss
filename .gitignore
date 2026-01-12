@@ -54,6 +54,9 @@ Thumbs.db
 # Claude Code instructions (local development only)
 CLAUDE.md
 
+# Local deployment instructions
+DEPLOY_INSTRUCTIONS.md
+
 # Logs
 *.log
 logs/
