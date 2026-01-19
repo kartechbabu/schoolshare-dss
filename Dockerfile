@@ -1,4 +1,4 @@
-# DSS App v2 - Dockerfile for Digital Ocean deployment
+# SchoolShare DSS - Docker deployment
 FROM python:3.11-slim
 
 # Set working directory

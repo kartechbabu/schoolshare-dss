@@ -1,14 +1,15 @@
-# Data files (large, not included in repo)
+# Data files (too large for repository)
 data/
 *.pkl
-*.gpkg
+*.parquet
+*.rds
 *.xlsx
 *.xls
 
-# Environment
+# Environment files
 .env
 .env.local
-.env.production
+.env.*.local
 
 # Python
 __pycache__/
@@ -51,12 +52,6 @@ Thumbs.db
 # Streamlit
 .streamlit/secrets.toml
 
-# Claude Code instructions (local development only)
-CLAUDE.md
-
-# Local deployment instructions
-DEPLOY_INSTRUCTIONS.md
-
 # Logs
 *.log
 logs/
@@ -65,3 +60,6 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Claude Code development instructions (local only)
+CLAUDE.md

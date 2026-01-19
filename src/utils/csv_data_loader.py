@@ -131,12 +131,64 @@ def parse_optimization_csv(df: pd.DataFrame, state: str, service: str) -> Dict:
                         results['optimized'][pct]['activated_schools'] = ast.literal_eval(school_list_str)
                     except:
                         results['optimized'][pct]['activated_schools'] = []
+            
+            # Extract facility-school pairings if available
+            if 'assignment(NCARID,NCESSCH)' in df.index:
+                pairing_str = df.loc['assignment(NCARID,NCESSCH)', col]
+                pairings = parse_pairings(pairing_str)
+                results['optimized'][pct]['facility_school_pairings'] = pairings
                         
         except Exception as e:
             print(f"Error parsing {col}: {e}")
             continue
     
     return results
+
+
+def parse_pairings(pairing_string) -> List[Tuple]:
+    """
+    Parse pairing string to list of (facility_id, school_id) tuples
+    
+    Args:
+        pairing_string: String representation of list of tuples
+        
+    Returns:
+        List of (facility_id, school_id) tuples
+    """
+    if pd.isna(pairing_string) or pairing_string == '0.0' or pairing_string == 0.0:
+        return []
+    try:
+        return ast.literal_eval(str(pairing_string))
+    except:
+        return []
+
+
+def load_facility_school_pairings(state: str, service: str, activation_rate: int) -> List[Tuple]:
+    """
+    Extract facility-school pairings from optimization results
+    
+    Args:
+        state: State name
+        service: Service type
+        activation_rate: Activation percentage
+        
+    Returns:
+        List of (facility_id, school_id) tuples
+    """
+    results = load_optimization_results(state, service)
+    
+    if not results or 'optimized' not in results:
+        return []
+    
+    if activation_rate not in results['optimized']:
+        # Find closest available rate
+        available_rates = list(results['optimized'].keys())
+        if not available_rates:
+            return []
+        activation_rate = min(available_rates, key=lambda x: abs(x - activation_rate))
+    
+    return results['optimized'][activation_rate].get('facility_school_pairings', [])
+
 
 def calculate_metrics_from_csv(results: Dict, activation_rate: int) -> Dict:
     """
@@ -192,7 +244,7 @@ def calculate_metrics_from_csv(results: Dict, activation_rate: int) -> Dict:
         metrics['lives_saved'] = int(metrics['km_saved'] * pop_total / 100000)
     else:
         # New access within 10km for arts
-        if metadata['primary_dist_m'] <= 10000:  # If primary threshold is ≤10km
+        if metadata['primary_dist_m'] <= 10000:  # If primary threshold is <=10km
             metrics['new_access_10km'] = metrics['pop_helped']
         else:
             # Estimate based on coverage improvement
@@ -277,7 +329,8 @@ def generate_demo_data_from_csv(state: str, service: str) -> Dict:
                 'nonwhite_pct': 0.35,
                 'nonbach_pct': 0.65,
                 'computation_time': 1.5,
-                'activated_schools': []
+                'activated_schools': [],
+                'facility_school_pairings': []
             }
         }
     }

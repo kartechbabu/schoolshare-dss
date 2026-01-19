@@ -18,7 +18,8 @@ from utils.csv_data_loader import (
     load_optimization_results,
     calculate_metrics_from_csv,
     get_available_states,
-    load_coverage_data
+    load_coverage_data,
+    load_facility_school_pairings
 )
 from utils.choropleth_map import (
     create_choropleth_map,
@@ -314,7 +315,7 @@ if run_analysis or (st.session_state.analysis_run and not params_changed):
     # TABS (Secondary Information)
     # ============================================
     st.markdown("---")
-    tab1, tab2, tab3 = st.tabs(["📊 Coverage Details", "💰 Implementation", "🏫 School List"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Coverage Details", "🔗 Facility Pairings", "💰 Implementation", "🏫 School List"])
 
     with tab1:
         st.subheader("Detailed Coverage Analysis")
@@ -368,6 +369,102 @@ if run_analysis or (st.session_state.analysis_run and not params_changed):
             st.info("Run the analysis to see coverage details.")
 
     with tab2:
+        st.subheader("Facility-School Pairings")
+        
+        if results and activation in results['optimized']:
+            optimized_data = results['optimized'][activation]
+            pairings = optimized_data.get('facility_school_pairings', [])
+            
+            if pairings:
+                st.success(f"**{len(pairings)} facility-school pairings** in this optimization scenario")
+                
+                # Load facility and school data for name lookups
+                school_gdf = load_school_data(state)
+                if 'arts' in service.lower():
+                    facility_df = load_arts_facilities(state)
+                else:
+                    facility_df = load_hospital_data(state)
+                
+                # Build pairing table
+                pairing_data = []
+                for facility_id, school_id in pairings:
+                    row = {
+                        'Facility ID': str(facility_id),
+                        'Facility Name': '',
+                        'School ID': str(school_id),
+                        'School Name': ''
+                    }
+                    
+                    # Look up facility name
+                    if facility_df is not None:
+                        if 'arts' in service.lower():
+                            # OrgMap uses NCARID
+                            if 'NCARID' in facility_df.columns:
+                                match = facility_df[facility_df['NCARID'] == facility_id]
+                                if len(match) > 0:
+                                    row['Facility Name'] = match.iloc[0].get('name', match.iloc[0].get('OrgName', ''))
+                            elif hasattr(facility_df, 'index'):
+                                try:
+                                    if facility_id in facility_df.index:
+                                        row['Facility Name'] = facility_df.loc[facility_id].get('name', facility_df.loc[facility_id].get('OrgName', ''))
+                                except:
+                                    pass
+                        else:
+                            # Hospitals
+                            if hasattr(facility_df, 'index'):
+                                try:
+                                    if facility_id in facility_df.index:
+                                        row['Facility Name'] = facility_df.loc[facility_id].get('NAME', '')
+                                except:
+                                    pass
+                    
+                    # Look up school name
+                    if school_gdf is not None:
+                        school_id_str = str(school_id)
+                        if school_id_str in school_gdf.index.astype(str).values:
+                            try:
+                                school_row = school_gdf.loc[school_gdf.index.astype(str) == school_id_str].iloc[0]
+                                row['School Name'] = school_row.get('School Name', school_row.get('NAME', ''))
+                            except:
+                                pass
+                    
+                    pairing_data.append(row)
+                
+                pairing_df = pd.DataFrame(pairing_data)
+                
+                # Display table
+                st.dataframe(
+                    pairing_df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        'Facility ID': st.column_config.TextColumn('Facility ID', width='small'),
+                        'Facility Name': st.column_config.TextColumn('Facility Name', width='medium'),
+                        'School ID': st.column_config.TextColumn('School ID (NCESSCH)', width='small'),
+                        'School Name': st.column_config.TextColumn('Paired School', width='medium'),
+                    }
+                )
+                
+                # Download button
+                csv = pairing_df.to_csv(index=False)
+                st.download_button(
+                    label="Download Pairings (CSV)",
+                    data=csv,
+                    file_name=f"{state.lower()}_{service.lower().replace(' ', '_')}_pairings_{activation}pct.csv",
+                    mime="text/csv"
+                )
+                
+                st.info("""
+                **How to interpret**: Each row shows which existing facility is paired with an activated school.
+                The optimization assigns each facility to the school that best serves its coverage area.
+                """)
+            else:
+                st.warning("No facility-school pairing data available for this scenario.")
+                st.info("Pairing data shows which existing facilities are assigned to activated schools in the optimization.")
+        else:
+            st.info("Run the analysis to see facility-school pairings.")
+
+    with tab3:
         st.subheader("Implementation Resources")
 
         col1, col2 = st.columns(2)
@@ -424,7 +521,7 @@ if run_analysis or (st.session_state.analysis_run and not params_changed):
             5. Schedule stakeholder meetings
             """)
 
-    with tab3:
+    with tab4:
         st.subheader("Recommended Schools for Activation")
 
         if results and activation in results['optimized']:
@@ -534,6 +631,8 @@ else:
 
         Based on the paper: "Infrastructure Sharing as a Solution to Systemic Spatial
         Inequality" which analyzed 222,783 Census Block Groups across 49 US states.
+        
+        **Paper**: [Available on SSRN](https://papers.ssrn.com/)
         """)
 
     # Quick stats
@@ -558,7 +657,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center'>
-        <small>SchoolShare DSS v2.0 | © All rights reserved</small>
+        <small>SchoolShare DSS v2.0 | <a href="https://schoolsharedss.org">schoolsharedss.org</a></small>
     </div>
     """,
     unsafe_allow_html=True

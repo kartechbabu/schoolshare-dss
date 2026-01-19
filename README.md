@@ -1,29 +1,29 @@
 # SchoolShare DSS
 
-A Decision Support System for reducing geographic inequality through public-private infrastructure sharing.
+**Decision Support System for Geographic Equity Optimization**
 
-**Live Demo:** [schoolsharedss.org](http://schoolsharedss.org)
+A Streamlit-based web application that helps policymakers explore the impact of activating public schools as shared service locations to reduce spatial inequality in access to arts facilities and hospitals.
+
+🌐 **Live Demo**: [schoolsharedss.org](https://schoolsharedss.org)
 
 ## Overview
 
-SchoolShare DSS helps policymakers and grant makers identify optimal locations for expanding access to healthcare and cultural services by leveraging existing public school infrastructure. The tool visualizes optimization results that show how school-based partnerships can reduce geographic inequality in service access.
+SchoolShare DSS visualizes optimization results from research analyzing how school infrastructure sharing can address geographic service deserts. The app provides:
 
-### Key Features
+- **Interactive State Analysis**: Select any US state and service type (arts or hospitals)
+- **Choropleth Maps**: Visualize coverage improvements by Census Block Group
+- **Impact Metrics**: Distance reductions, population helped, and equity improvements
+- **Facility-School Pairings**: See which facilities are matched with activated schools
+- **Implementation Resources**: Cost estimates and funding sources
 
-- **Interactive Analysis**: Select state, service type (arts/hospitals), and school activation rate
-- **Equity Impact Metrics**: Distance reductions, coverage improvements, demographic breakdowns
-- **Geographic Visualization**: Choropleth maps showing improvement by census block group
-- **Implementation Planning**: Cost estimates, funding sources, school lists for download
+## Key Findings
 
-## Research
+Our research shows that strategic school activation can:
 
-This tool is based on research presented in:
-
-> **"An Optimization Framework for Reducing Geographic Inequality Through Public-Private Infrastructure Sharing: Applications to Healthcare and Cultural Organizations"**
->
-> Karthik Babu Nattamai Kannan (SMU), Young Woong Park (Iowa State), Sridhar Narasimhan (Georgia Tech)
->
-> [SSRN Paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4335917)
+- Reduce service access gaps by **62-78%**
+- Eliminate **46%** of structural inequality
+- Save an estimated **1,953 lives** annually (hospital access)
+- Cost only **$61-$327** per person helped
 
 ## Installation
 
@@ -34,106 +34,143 @@ This tool is based on research presented in:
 
 ### Local Development
 
+1. Clone the repository:
 ```bash
-# Clone the repository
 git clone https://github.com/kartechbabu/schoolshare-dss.git
 cd schoolshare-dss
+```
 
-# Create virtual environment
+2. Create virtual environment:
+```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
 
-# Install dependencies
+3. Install dependencies:
+```bash
 pip install -r requirements.txt
+```
 
-# Run the app
+4. Set up data directory:
+```bash
+mkdir -p data/processed data/raw data/census
+```
+
+5. Run the app:
+```bash
 streamlit run app.py
 ```
 
-### Docker
+The app will be available at `http://localhost:8501`
+
+### Docker Deployment
 
 ```bash
-# Build the image
 docker build -t schoolshare-dss .
-
-# Run the container
-docker run -d -p 8501:8501 -v $(pwd)/data:/app/data:ro --name schoolshare-dss schoolshare-dss
+docker run -d -p 8501:8501 -v $(pwd)/data:/app/data:ro --name dss-app schoolshare-dss
 ```
 
 ## Data Requirements
 
-This repository contains only the application code. To run the app with full functionality, you need:
+This repository contains only the application code. To run with actual data, you need:
 
 ### Required Data Files
 
 ```
 data/
+├── processed/
+│   ├── HS_gdf_meters_clipped_{STATE_FIPS}.pkl  # School locations
+│   ├── OM_gdf_meters_clipped_{STATE_FIPS}.pkl  # Arts facility locations
+│   └── HO_gdf_meters_clipped_{STATE_FIPS}.pkl  # Hospital locations
 ├── raw/
-│   ├── result_arts_250425/          # Arts optimization results
+│   ├── result_arts_250425/                     # Arts optimization results
 │   │   ├── {STATE}_{FIPS}_result_dist_*_reduced.csv
-│   │   └── coverages/               # Coverage scenario files
-│   └── result_hospital_250507/      # Hospital optimization results
+│   │   └── coverages/
+│   └── result_hospital_250507/                 # Hospital optimization results
 │       ├── {STATE}_{FIPS}_result_dist_*_reduced.csv
 │       └── coverages/
-├── processed/
-│   ├── HS_gdf_meters_clipped_{FIPS}.pkl    # School locations by state
-│   ├── HO_gdf_meters_clipped_{FIPS}.pkl    # Hospital locations by state
-│   └── OM_gdf_meters_clipped_{FIPS}.pkl    # Arts facility locations
 └── census/
-    └── cbg_shapes_2020.gpkg         # Census Block Group geometries
+    └── cbg_shapes_2020.gpkg                    # CBG geometries
 ```
 
 ### Data Sources
 
-- **Optimization results**: Generated by the optimization model described in the paper
-- **School locations**: NCES Public School data
-- **Hospital locations**: HIFLD Hospital dataset
-- **Arts facilities**: OrgMap arts organization database
-- **Census geometries**: US Census Bureau TIGER/Line shapefiles
-
-Contact the authors for access to processed data files for research purposes.
-
-## Deployment
-
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for deployment instructions.
-
-### Quick Deploy
-
-```bash
-# On server, after cloning repo
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh
-```
+- **School Locations**: NCES Public School Universe Survey
+- **Arts Facilities**: DataArts OrgMap database
+- **Hospitals**: HIFLD Open Data
+- **Census Geometries**: US Census Bureau TIGER/Line Shapefiles
 
 ## Environment Variables
 
+Configure paths via environment variables:
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DSS_BASE_PATH` | Application base path | `/app` |
-| `DSS_DATA_PATH` | Data directory | `/app/data` |
-| `DSS_CENSUS_PATH` | Census shapefiles | `/app/data/census` |
-| `DSS_PROCESSED_PATH` | Processed data | `/app/data/processed` |
+| `DSS_BASE_PATH` | Application root | Auto-detected |
+| `DSS_DATA_PATH` | Data directory | `{BASE}/data` |
+| `DSS_CENSUS_PATH` | Census shapefiles | `{DATA}/census` |
+| `DSS_PROCESSED_PATH` | Processed data | `{DATA}/processed` |
+| `DSS_DEBUG` | Enable debug output | Not set |
 
-## License
+## Project Structure
 
-Apache License 2.0 - see [LICENSE](LICENSE) for details.
+```
+schoolshare-dss/
+├── app.py                 # Main Streamlit application
+├── src/
+│   ├── config.py          # Path configuration
+│   └── utils/
+│       ├── csv_data_loader.py    # Load optimization results
+│       ├── choropleth_map.py     # Map visualization
+│       ├── data_loader.py        # Data utilities
+│       ├── raw_data_loader.py    # Raw data handling
+│       └── simple_map.py         # Simplified maps
+├── .streamlit/
+│   └── config.toml        # Streamlit configuration
+├── docs/
+│   ├── DEPLOYMENT.md      # Deployment guide
+│   └── DOMAIN_SETUP.md    # DNS configuration
+├── scripts/
+│   └── deploy.sh          # Server deployment script
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+└── .env.example
+```
+
+## Research Paper
+
+This tool accompanies the research paper:
+
+> **"Infrastructure Sharing as a Solution to Systemic Spatial Inequality"**
+>
+> Analyzing 222,783 Census Block Groups across 49 US states to demonstrate
+> how cross-sector infrastructure sharing can reduce geographic disparities
+> in access to essential services.
+
+📄 **Paper**: [Available on SSRN](https://papers.ssrn.com/)
 
 ## Citation
 
 If you use this tool in your research, please cite:
 
 ```bibtex
-@article{kannan2025schoolshare,
-  title={An Optimization Framework for Reducing Geographic Inequality Through Public-Private Infrastructure Sharing: Applications to Healthcare and Cultural Organizations},
-  author={Kannan, Karthik Babu Nattamai and Park, Young Woong and Narasimhan, Sridhar},
-  journal={Working Paper},
-  year={2025},
-  url={https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4335917}
+@article{schoolshare2025,
+  title={Infrastructure Sharing as a Solution to Systemic Spatial Inequality},
+  author={[Authors]},
+  journal={[Journal]},
+  year={2025}
 }
 ```
 
-## Authors
+## License
 
-- **Karthik Babu Nattamai Kannan** - Cox School of Business, Southern Methodist University
-- **Young Woong Park** - Ivy College of Business, Iowa State University
-- **Sridhar Narasimhan** - Scheller College of Business, Georgia Institute of Technology
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+For questions or issues, please [open an issue](https://github.com/kartechbabu/schoolshare-dss/issues) on GitHub.

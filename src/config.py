@@ -1,14 +1,11 @@
 """
-Configuration module for DSS App
+Configuration module for SchoolShare DSS
 Supports both local development and cloud deployment via environment variables
 """
 
 import os
 from pathlib import Path
 
-# Base paths - can be overridden via environment variables
-# For local development, uses absolute paths
-# For deployment, set these via environment variables
 
 def get_base_path():
     """Get the base path for the application"""
