@@ -262,7 +262,9 @@ def create_choropleth_map(
     activated_schools: List[str],
     view_type: str = "Distance (km)",
     show_facilities: bool = True,
-    show_schools: bool = True
+    show_schools: bool = True,
+    pairings: List[Tuple] = None,
+    show_pairing_lines: bool = False
 ) -> Optional[folium.Map]:
     """
     Create a choropleth map showing coverage improvements
@@ -275,6 +277,8 @@ def create_choropleth_map(
         view_type: One of "Distance (km)", "% Improvement", "Coverage Status"
         show_facilities: Whether to show existing facilities
         show_schools: Whether to show activated schools
+        pairings: List of (facility_id, school_id) tuples for pairing visualization
+        show_pairing_lines: Whether to draw lines connecting paired facilities/schools
     """
     # Get center coordinates
     center = STATE_CENTERS.get(state, (39.8, -98.5))
@@ -439,6 +443,18 @@ def create_choropleth_map(
         if school_gdf is not None:
             add_school_markers(m, school_gdf, activated_schools)
 
+    # Add pairing lines if enabled
+    if show_pairing_lines and pairings:
+        school_gdf = load_school_data(state) if 'school_gdf' not in dir() else school_gdf
+        if 'arts' in service.lower():
+            facility_df = load_arts_facilities(state)
+        else:
+            facility_df = load_hospital_data(state)
+
+        if school_gdf is not None and facility_df is not None:
+            add_pairing_lines(m, pairings, facility_df, school_gdf,
+                            facility_type='arts' if 'arts' in service.lower() else 'hospital')
+
     # Add layer control
     folium.LayerControl().add_to(m)
 
@@ -575,6 +591,79 @@ def add_school_markers(
         count += 1
         if max_markers and count >= max_markers:
             break
+
+    fg.add_to(m)
+
+
+def add_pairing_lines(
+    m: folium.Map,
+    pairings: List[Tuple],
+    facilities: pd.DataFrame,
+    schools: gpd.GeoDataFrame,
+    facility_type: str = 'arts'
+) -> None:
+    """
+    Draw dashed lines connecting each facility to its paired school.
+
+    Args:
+        m: Folium map to add lines to
+        pairings: List of (facility_id, school_id) tuples
+        facilities: DataFrame/GeoDataFrame with facility data
+        schools: GeoDataFrame with school data
+        facility_type: 'arts' or 'hospital'
+    """
+    fg = folium.FeatureGroup(name='Pairing Connections')
+
+    # Build lookup dictionaries for coordinates
+    facility_coords = {}
+    school_coords = {}
+
+    # Build facility coordinate lookup
+    for idx, row in facilities.iterrows():
+        # Get facility ID
+        if facility_type == 'arts':
+            fac_id = row.get('NCARID', idx)
+        else:
+            fac_id = idx
+
+        # Get coordinates
+        if hasattr(row, 'geometry') and row.geometry is not None:
+            lat, lon = row.geometry.y, row.geometry.x
+        elif 'lat' in row.index and 'lon' in row.index:
+            lat, lon = row['lat'], row['lon']
+        elif 'Latitude' in row.index and 'Longitude' in row.index:
+            lat, lon = row['Latitude'], row['Longitude']
+        elif 'LATITUDE' in row.index and 'LONGITUDE' in row.index:
+            lat, lon = row['LATITUDE'], row['LONGITUDE']
+        else:
+            continue
+
+        if not pd.isna(lat) and not pd.isna(lon):
+            facility_coords[fac_id] = (lat, lon)
+
+    # Build school coordinate lookup
+    for idx, school in schools.iterrows():
+        if not hasattr(school, 'geometry') or school.geometry is None:
+            continue
+        lat, lon = school.geometry.y, school.geometry.x
+        school_coords[str(idx)] = (lat, lon)
+
+    # Draw lines for each pairing
+    lines_added = 0
+    for facility_id, school_id in pairings:
+        fac_coord = facility_coords.get(facility_id)
+        sch_coord = school_coords.get(str(school_id))
+
+        if fac_coord and sch_coord:
+            folium.PolyLine(
+                locations=[fac_coord, sch_coord],
+                color='#e67e22',  # Orange
+                weight=1.5,
+                opacity=0.6,
+                dash_array='5, 5',  # Dashed line
+                tooltip=f"Pairing: Facility {facility_id} → School {school_id}"
+            ).add_to(fg)
+            lines_added += 1
 
     fg.add_to(m)
 
