@@ -157,7 +157,7 @@ if run_analysis or (st.session_state.analysis_run and not params_changed):
 
         if activated_schools_list:
             # Map controls
-            map_controls = st.columns([2, 2, 2, 2, 1])
+            map_controls = st.columns([2, 2, 2, 1])
 
             with map_controls[0]:
                 # Choropleth view toggle
@@ -175,16 +175,6 @@ if run_analysis or (st.session_state.analysis_run and not params_changed):
                 show_schools = st.checkbox("Show Activated Schools", value=True)
 
             with map_controls[3]:
-                # Get pairings to check if available
-                pairings = optimized_data.get('facility_school_pairings', [])
-                show_pairing_lines = st.checkbox(
-                    "Show Pairing Lines",
-                    value=False,
-                    disabled=len(pairings) == 0,
-                    help="Draw lines connecting facilities to their paired schools"
-                )
-
-            with map_controls[4]:
                 use_simple_map = st.checkbox("Fast Mode", value=False,
                                              help="Use simpler map for faster loading")
 
@@ -203,14 +193,10 @@ if run_analysis or (st.session_state.analysis_run and not params_changed):
                 - Gray areas: CBGs with no change (already well-served)
                 """
 
-            pairing_legend = ""
-            if show_pairing_lines and pairings:
-                pairing_legend = f"\n            - 🟠 Orange dashed lines: Facility-school pairings ({len(pairings)} total)"
-
             st.info(f"""
             {legend_text}
             - 🟢 Green markers: Activated schools ({len(activated_schools_list)} total)
-            - {'🟣 Purple markers: Arts facilities' if 'arts' in service.lower() else '🔵 Blue markers: Hospitals'}{pairing_legend}
+            - {'🟣 Purple markers: Arts facilities' if 'arts' in service.lower() else '🔵 Blue markers: Hospitals'}
             """)
 
             # Create and display map
@@ -233,9 +219,7 @@ if run_analysis or (st.session_state.analysis_run and not params_changed):
                             activated_schools=activated_schools_list,
                             view_type=view_type,
                             show_facilities=show_facilities,
-                            show_schools=show_schools,
-                            pairings=pairings,
-                            show_pairing_lines=show_pairing_lines
+                            show_schools=show_schools
                         )
 
                     if the_map:
