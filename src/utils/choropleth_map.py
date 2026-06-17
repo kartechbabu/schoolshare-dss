@@ -449,7 +449,7 @@ def add_facility_markers(
     m: folium.Map,
     facilities: pd.DataFrame,
     facility_type: str = 'arts',
-    max_markers: int = 500
+    max_markers: int = None
 ) -> None:
     """
     Add facility markers to the map
@@ -518,7 +518,7 @@ def add_facility_markers(
         ).add_to(fg)
 
         count += 1
-        if count >= max_markers:
+        if max_markers is not None and count >= max_markers:
             break
 
     fg.add_to(m)
